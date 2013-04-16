@@ -47,6 +47,9 @@ class BaseSearchlight(Measure):
     roi_feature_ids = ConditionalAttribute(enabled=False,
         doc="Feature IDs for all generated ROIs.")
 
+    roi_center_ids = ConditionalAttribute(enabled=True,
+        doc="Center ID for all generated ROIs.")
+
     is_trained = True
     """Indicate that this measure is always trained."""
 
@@ -165,6 +168,10 @@ class BaseSearchlight(Measure):
         # charge state
         self.ca.raw_results = results
 
+        # store the center ids as a feature attribute
+        results.fa['center_ids'] = roi_ids
+
+
         # return raw results, base-class will take care of transformations
         return results
 
@@ -219,6 +226,8 @@ class Searchlight(BaseSearchlight):
             sl.ca.roi_feature_ids = [r.a.roi_feature_ids for r in results]
         if sl.ca.is_enabled('roi_sizes'):
             sl.ca.roi_sizes = [r.a.roi_sizes for r in results]
+        if sl.ca.is_enabled('roi_center_ids'):
+            sl.ca.roi_center_ids = [r.a.roi_center_ids for r in results]
 
         return result_ds
 
@@ -359,7 +368,7 @@ class Searchlight(BaseSearchlight):
           RNG seed.  Should be provided e.g. in child process invocations
           to guarantee that they all seed differently to not keep generating
           the same sequencies due to reusing the same copy of numpy's RNG
-        iblock
+        block
           Critical for generating non-colliding temp filenames in case
           of hdf5 backend.  Otherwise RNGs of different processes might
           collide in their temporary file names leading to problems.
@@ -373,7 +382,12 @@ class Searchlight(BaseSearchlight):
         results = []
         store_roi_feature_ids = self.ca.is_enabled('roi_feature_ids')
         store_roi_sizes = self.ca.is_enabled('roi_sizes')
-        assure_dataset = store_roi_feature_ids or store_roi_sizes
+        store_roi_center_ids = self.ca.is_enabled('roi_center_ids')
+
+        assure_dataset = any([store_roi_feature_ids,
+                              store_roi_sizes,
+                              store_roi_center_ids])
+
         # put rois around all features in the dataset and compute the
         # measure within them
         for i, f in enumerate(block):
@@ -402,7 +416,10 @@ class Searchlight(BaseSearchlight):
             if self.__add_center_fa:
                 # add fa to indicate ROI seed if requested
                 roi_seed = np.zeros(roi.nfeatures, dtype='bool')
-                roi_seed[roi_fids.index(f)] = True
+                if f in roi_fids:
+                    roi_seed[roi_fids.index(f)] = True
+                else:
+                    warning("Center feature attribute id %s not found" % f)
                 roi.fa[self.__add_center_fa] = roi_seed
 
             # compute the datameasure and store in results
@@ -416,6 +433,8 @@ class Searchlight(BaseSearchlight):
                 res.a['roi_feature_ids'] = roi_fids
             if store_roi_sizes:
                 res.a['roi_sizes'] = roi.nfeatures
+            if store_roi_center_ids:
+                res.a['roi_center_ids'] = f
             results.append(res)
 
             if __debug__:
@@ -474,7 +493,8 @@ class Searchlight(BaseSearchlight):
                            fset=__set_datameasure)
     add_center_fa = property(fget=lambda self: self.__add_center_fa)
 
-@borrowkwargs(Searchlight, '__init__', exclude=['roi_ids'])
+
+@borrowkwargs(Searchlight, '__init__', exclude=['roi_ids', 'queryengine'])
 def sphere_searchlight(datameasure, radius=1, center_ids=None,
                        space='voxel_indices', **kwargs):
     """Creates a `Searchlight` to run a scalar `Measure` on
