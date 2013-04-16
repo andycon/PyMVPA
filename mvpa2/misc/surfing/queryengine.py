@@ -92,9 +92,12 @@ class SurfaceVerticesQueryEngine(QueryEngineInterface):
                 raise ValueError("Mismatch in affine matrix: %r !+ %r" %
                                         (vg_ds.affine, vg.affine))
             if not vg_ds.same_shape(vg):
-                raise ValueError("Mismatch in shape: (%s,%s,%s) != "
-                                 "(%s,%s,%s)" %
-                                        (vg_ds.shape[:3], vg.shape[:3]))
+                if vg_ds.shape[:3]==vg.shape[:3]:
+                    pass
+                else:
+                    raise ValueError("Mismatch in shape: %s != "
+                                 "%s" %
+                                        (str(vg_ds.shape), str(vg.shape[:3])))
         else:
             warning("Could not find dataset volume geometry for %r" % dataset)
 
