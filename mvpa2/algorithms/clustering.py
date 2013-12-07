@@ -23,6 +23,7 @@ __all__ = ['Hyperalignment']
 
 import numpy as np
 import scipy.stats as stats
+import sys
 
 if __debug__:
     from mvpa2.base import debug
