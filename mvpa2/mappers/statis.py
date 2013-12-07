@@ -9,6 +9,7 @@ from operator import itemgetter
 import matplotlib as mpl
 import sys
 
+
 class StatisMapper(Mapper):
     """Implementation of STATIS.
     Compromise matrices are the optimal linear combination of
@@ -289,7 +290,7 @@ def run_bootstrap(ds, sts, niter=1000):
                 Y = Y_t
             else:
                 Y = np.hstack((Y,Y_t))
-            fselect[:,:,k] = ds.samples[ds.chunks==np.unique(ds.chunks)[j],:]
+            fselect[:,:,k] = ds.samples[ds.chunks==j,:]
 
         (A,alpha,C,G) = inter_table_Rv_analysis(Y,Y_idx)
         if G is None:
