@@ -6,23 +6,17 @@
 #   copyright and license terms.
 #
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##
-"""Transformation of individual feature spaces into a common space
-
-The :class:`Hyperalignment` class in this module implements an algorithm
-published in :ref:`Haxby et al., Neuron (2011) <HGC+11>` *A common,
-high-dimensional model of the representational space in human ventral temporal
-cortex.*
-
+"""Functional connectivity clustering based modelled on Afni's InstaCorr
 """
 
 __docformat__ = 'restructuredtext'
 
-# don't leak the world
-__all__ = ['Hyperalignment']
-
 
 import numpy as np
 import scipy.stats as stats
+import sys
+from mvpa2.suite import *
+
 
 if __debug__:
     from mvpa2.base import debug
@@ -153,20 +147,9 @@ def group_insta_clust(ds,th=90,crit='pct',overlap=False,
         pmap = np.copy(ds.fa['pmap'].value)
     else:
         print "Calculating Full connectivity matrices"
-        cm = get_connectivity_matrices(ds)        
+        tmap, pmap = get_tstats(get_connectivity_matrices(ds))
         print "Calculating group T-stats"
-        tmap,pmap = stats.ttest_1samp(cm.samples,0,axis=0)
-        # Now fix up diagonals, and any unwanted infinities and NaNs
-        # since diagonals will be all t = inf, p = 0
-        # give these values that will make those features inconsequential to 
-        # the analysis  
-        pmap[np.diag_indices(len(pmap))] = 0.
-        tmap[np.isnan(tmap)] = 1.
-        tmap[numpy.isnan(tmap)] = 0
-        tmap[numpy.isinf(tmap)] = 0
-        tmap[np.diag_indices(len(tmap))] = np.max(tmap,1)
-
-
+        
         
     nnod = len(tmap)
     if ds.fa.has_key('xsub_map'):
@@ -209,7 +192,7 @@ def group_insta_clust(ds,th=90,crit='pct',overlap=False,
             pct_th =scipy.stats.scoreatpercentile(tm,th)
             nodes_in_mask = tmap[maxnode,:]>=scipy.stats.scoreatpercentile(tm,th)
         else:
-            print "!! Warning: Invalid threshold criterion, assuming crit=='pct', and th=90"
+            print "::: Warning: Invalid threshold criterion, assuming crit=='pct', and th=90"
             nodes_in_mask = pmap[maxnode,:]<=scipy.stats.scoreatpercentile(pmap[maxnode,:],90)
         if sum(nodes_in_mask)>=min_nodes:
             c = xsub_map[:,maxnode]
@@ -253,14 +236,81 @@ def get_connectivity_matrices(ds):
     """
     data = np.array(ds)
     nsubs,nnod,ldist = data.shape
-
-    print "allocating a lot of memory..."
+    print "allocating a lot of memory ... array size %s x %s x %s" % (nsubs,nnod,nnod)
     cm = np.zeros((nsubs,nnod,nnod),dtype='float32')
-
-    print "so far so good..."
     for i in range(nsubs):
         sys.stdout.write("Computing connectivity matrix %s of %s \r"%(i+1,nsubs))
         sys.stdout.flush()
         cm[i,:,:] = np.float32(np.corrcoef(data[i,:,:]))
+    print ''
+        
     return Dataset(cm)
 
+def get_tstats(cm,n=500):
+    print "Calculating group T-stats"
+    tmap = None
+    pmap = None
+    for i in range(0,len(cm.T),n):
+        sys.stdout.write("t-test progress: %s of %s features\r" 
+                           % (i,len(cm.T)))
+        sys.stdout.flush()
+       
+        t,p = stats.ttest_1samp(np.array(cm[:,:,i:i+n]),0,axis=0)
+        if tmap is None:
+            tmap = t
+            pmap = p
+        else:
+            tmap = np.hstack((tmap,t))
+            pmap = np.hstack((pmap,p))
+    # Now fix up diagonals, and any unwanted infinities and NaNs
+    # since diagonals will be all t = inf, p = 0
+    # give these values that will make those features inconsequential to 
+    # the analysis  
+    pmap[np.diag_indices(len(pmap))] = 0.
+    tmap[np.isnan(tmap)] = 1.
+    tmap[np.isnan(tmap)] = 0
+    tmap[np.isinf(tmap)] = 0
+    tmap[np.diag_indices(len(tmap))] = np.max(tmap,1)
+    return tmap, pmap
+
+def get_xsub_corr_for_all_nodes(data):
+    """Return the 3 X n-features cross-subject correlation data. The first
+    row is the mean cross subject correlation, followed by the t-statistic for
+    mean r > 0, and the p-values. Iternally this funection iterates over all
+    features calling get_xsub_corr_for_node.
+    """
+    data = np.array(data)
+    nsubs,nnod,ldist = data.shape
+    cors = np.zeros((3,nnod))
+    for n in range(nnod):
+        if n%100==0:
+            sys.stdout.write("Calculating cross-subject correlations: %s/%s \r"%(n,nnod))
+            sys.stdout.flush()
+        cors[:,n] = get_xsub_corr_for_node(data,n)
+    cors[np.isnan(cors)] = 0
+    print '\n'
+    return cors
+
+def get_xsub_corr_for_node(data,node,mean_sample=True):
+    """Returns the cross-subject correlation for patterns associated with a
+    specified feature ("node"), where subjects are stacked on the first
+    (samples, x) dimension, features on the second (y), and patterns on the third (z)
+    dimension. Returns: (1) mean cross-subject correlation (when mean_sample==True, 
+    default), (2) the cross-subject t-score for for r > 0 (dof = nsubjects-1), and 
+    (3) the p-value associated with the t-stat. When mean_samples == False, the
+    first return value is an n-subjects length list of containing the
+    mean correlation for each subject's pattern with that of every other
+    subject.
+    """
+    data = np.array(data)
+    data = data[:,node,:]
+    m,n = data.shape
+    cors =[]
+    for i in range(m):
+        d = data[np.array(range(m))!=i,:]
+        cor = np.corrcoef(d,data[i,:])
+        cors.append(np.mean(cor[m-1,0:m-1]))
+    tt = stats.ttest_1samp(cors,0)
+    if mean_sample:
+        cors = np.mean(cors)
+    return cors,tt[0],tt[1]
