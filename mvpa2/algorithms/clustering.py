@@ -17,7 +17,6 @@ import scipy.stats as stats
 import sys
 from mvpa2.suite import *
 
-=======
 
 if __debug__:
     from mvpa2.base import debug
