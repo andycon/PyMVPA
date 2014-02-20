@@ -251,9 +251,9 @@ def get_tstats(cm,n=500):
     print "Calculating group T-stats"
     tmap = None
     pmap = None
-    for i in range(0,len(cm.T),n):
+    for i in range(0,len(cm.transpose()),n):
         sys.stdout.write("t-test progress: %s of %s features\r" 
-                           % (i,len(cm.T)))
+                           % (i,len(cm.transpose())))
         sys.stdout.flush()
        
         t,p = stats.ttest_1samp(np.array(cm[:,:,i:i+n]),0,axis=0)
