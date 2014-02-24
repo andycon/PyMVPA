@@ -244,7 +244,7 @@ def get_connectivity_matrices(ds):
         cm[i,:,:] = np.float32(np.corrcoef(data[i,:,:]))
     print ''
         
-    return Dataset(cm)
+    return cm
 
 def get_tstats(cm,n=500):
     print "Calculating group T-stats"
