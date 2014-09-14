@@ -405,7 +405,6 @@ class AttrDataset(object):
             self.sa[k].value = np.concatenate((self.sa[k].value, v.value),
                                              axis=0)
 
-
     def __getitem__(self, args):
         """
         """
