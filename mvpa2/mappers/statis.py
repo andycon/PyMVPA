@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 from matplotlib import cm
 from scipy.stats import chi2
-from mvpa2.suite import Mapper, Dataset
+from mvpa2.suite import Mapper, Dataset, hstack
 from scipy.spatial.distance import pdist
 from operator import itemgetter
 import matplotlib as mpl
@@ -79,7 +79,8 @@ class StatisMapper(Mapper):
             if X is None:
                 X = t
             else:
-                X.append(t,stack='h')
+                X = hstack((X,t))
+                #X.append(t,stack='h')
 
         self.I = I = ntargets
         self.M = M = (1.0/I)*np.eye(I) # masses, eq. 2
@@ -180,14 +181,14 @@ class StatisMapper(Mapper):
                 X = table
             else:
                 mapped.append(part.copy())
-                X.append(table,'h')
+                X = hstack((X, table))
+                #X.append(table,'h')
         mapped.a['X'] = X
          
         if self.keep_dims == 'all':
             self.keep_dims = range(mapped.shape[1])
         return mapped[:,self.keep_dims]
 
-    #def _reverse_data(self, data):
         
 
 
