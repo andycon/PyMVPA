@@ -227,10 +227,7 @@ if externals.exists("scipy"):
     from mvpa2.support.scipy.stats import scipy
     from mvpa2.measures.corrcoef import *
     from mvpa2.measures.rsa import *
-<<<<<<< HEAD
-=======
     from mvpa2.measures.ds import *
->>>>>>> da0a4bfaaf9667daa7143816fc557ac109c1c72a
     from mvpa2.clfs.ridge import *
     from mvpa2.clfs.plr import *
     from mvpa2.misc.stats import *
