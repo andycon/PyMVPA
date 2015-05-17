@@ -62,7 +62,7 @@ Tarballs are available at:
 Tarball Content
 ===============
 
-data/
+haxby2001/
   Contains data files:
 
   bold.nii.gz
@@ -169,7 +169,7 @@ Instructions
 
   >>> from mvpa2.suite import *
   >>> datapath = os.path.join(pymvpa_datadbroot, 'tutorial_data',
-  ...                         'tutorial_data', 'data')
+  ...                         'tutorial_data', 'haxby2001')
   >>> attrs = SampleAttributes(os.path.join(datapath, 'attributes.txt'))
   >>> ds = fmri_dataset(samples=os.path.join(datapath, 'bold.nii.gz'),
   ...                   targets=attrs.targets, chunks=attrs.chunks,
@@ -212,6 +212,12 @@ Changelog
 0.3
   * Removed tutorial_lib.py which is superseded by using
     mvpa2.tutorial_suite
+  * Removed start_tutorial_session.sh which is superseded
+    by the pymvpa2-tutorial command
+  * Removed outdated intermediate tutorial results. The tutorial
+    can now be ran on downsampled data that allow for near-realtime
+    computing on reasonable hardware.
+  * Data is now structured according to an openfmri.org-like scheme.
 
 0.2
   * Updated tutorial code to work with PyMVPA 0.6

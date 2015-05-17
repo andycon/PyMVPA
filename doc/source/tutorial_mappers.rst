@@ -7,12 +7,13 @@
   #
   ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 
-.. index:: Tutorial, Mapper
+.. index:: Tutorial, Mapper, OpenFMRI, Dataset layout
 .. _chap_tutorial_mappers:
+.. _chap_tutorial_getdatainshape:
 
-********************************
- Data transformation -- Mappers
-********************************
+***********************
+ Getting data in shape
+***********************
 
 .. note::
 
@@ -20,9 +21,10 @@
   <http://ipython.org/ipython-doc/dev/interactive/htmlnotebook.html>`_:
   [`ipynb <notebooks/tutorial_mappers.ipynb>`_]
 
-In the tutorial part :ref:`chap_tutorial_datasets` we have discovered a
-magic ingredient of datasets: a :class:`~mvpa2.mappers.base.Mapper`. Mappers are probably the most
-powerful concept in PyMVPA, and there is little one would do without them.
+In the tutorial part :ref:`chap_tutorial_datasets` we have discovered a magic
+ingredient of datasets: a :class:`~mvpa2.mappers.base.Mapper`. Mappers are
+probably the most powerful concept in PyMVPA, and there is little one would do
+without them.
 
 In general, a mapper is an algorithm that transforms data.
 This transformation can be as simple as selecting a subset of data, or as
@@ -40,8 +42,9 @@ used. In PyMVPA, all these transformations are :mod:`~mvpa2.mappers`.
 
 Let's create a dummy dataset (5 samples, 12 features). This time we will use a
 new method to create the dataset, the ``dataset_wizard``. Here it is, fully
-equivalent to a regular constructor call (i.e.  `~mvpa2.datasets.base.Dataset`),
-but we will shortly see some nice convenience aspects.
+equivalent to a regular constructor call (i.e.
+`~mvpa2.datasets.base.Dataset`), but we will shortly see some nice convenience
+aspects.
 
 >>> from mvpa2.tutorial_suite import *
 >>> ds = dataset_wizard(np.ones((5, 12)))
@@ -67,16 +70,16 @@ True
 >>> print ds.a.mapper
 <FlattenMapper>
 
-We see that the resulting dataset looks identical to the one above, but this time
-it got created from a 3D samples array (i.e. five samples, where each is a 4x3
-matrix). Somehow this 3D array got transformed into a 2D samples array in the
-dataset. This magic behavior is unveiled by observing that the dataset's mapper
-is a `~mvpa2.mappers.flatten.FlattenMapper`.
+We see that the resulting dataset looks identical to the one above, but this
+time it got created from a 3D samples array (i.e. five samples, where each is a
+4x3 matrix). Somehow this 3D array got transformed into a 2D samples array in
+the dataset. This magic behavior is unveiled by observing that the dataset's
+mapper is a `~mvpa2.mappers.flatten.FlattenMapper`.
 
 The purpose of this mapper is precisely what we have just observed: reshaping
-data arrays into 2D. It does it by preserving the first axis (in PyMVPA datasets
-this is the axis that separates the samples) and concatenates all other axis
-into the second one.
+data arrays into 2D. It does it by preserving the first axis (in PyMVPA
+datasets this is the axis that separates the samples) and concatenates all
+other axis into the second one.
 
 Since mappers represent particular transformations they can also be seen as a
 protocol of what has been done. If we look at the dataset, we know that it had
@@ -94,11 +97,12 @@ True
 <Chain: <Flatten>-<StaticFeatureSelection>>
 
 Now the situation has changed: *two* new mappers appeared in the dataset -- a
-`~mvpa2.mappers.base.ChainMapper` and a `~mvpa2.featsel.base.StaticFeatureSelection`.
-The latter describes (and actually performs) the slicing operation we just made,
-while the former encapsulates the two mappers into a processing pipeline.
-We can see that the mapper chain represents the processing history of the
-dataset like a breadcrumb track.
+`~mvpa2.mappers.base.ChainMapper` and a
+`~mvpa2.featsel.base.StaticFeatureSelection`.  The latter describes (and
+actually performs) the slicing operation we just made, while the former
+encapsulates the two mappers into a processing pipeline.  We can see that the
+mapper chain represents the processing history of the dataset like a breadcrumb
+track.
 
 As it has been mentioned, mappers not only can transform a single dataset, but
 can be fed with other data (as long as it is compatible with the mapper).
@@ -115,14 +119,15 @@ can be fed with other data (as long as it is compatible with the mapper).
 >>> print fmapped
 [ 1  2  8 10]
 
-Although ``subds`` has less features than our input data, forward mapping applies
-the same transformation that had been done to the dataset itself also to our
-test 4x3 array. The procedure yields a feature vector of the same shape as the
-one in ``subds``. By looking at the forward-mapped data, we can verify that the
-correct features have been chosen.
+Although ``subds`` has less features than our input data, forward mapping
+applies the same transformation that had been done to the dataset itself also
+to our test 4x3 array. The procedure yields a feature vector of the same shape
+as the one in ``subds``. By looking at the forward-mapped data, we can verify
+that the correct features have been chosen.
 
 
-.. ========================================
+Load real data
+==============
 
 We have pretty much all the pieces to start a first analysis.  We know how to
 load fMRI data from time series images, we know how to add and access
@@ -146,9 +151,9 @@ time we need more than just the EPI images. For a classification analysis we
 also need to associate each sample with a corresponding experimental condition,
 i.e. a class label, also sometimes called :term:`target` value.  Moreover, for
 a cross-validation procedure we also need to partition the full dataset into,
-presumably, independent :term:`chunk`\ s. Independence is critical to achieve an
-unbiased estimate of the generalization performance of a classifier, i.e. its
-accuracy in predicting the correct class label for new data, unseen during
+presumably, independent :term:`chunk`\ s. Independence is critical to achieve
+an unbiased estimate of the generalization performance of a classifier, i.e.
+its accuracy in predicting the correct class label for new data, unseen during
 training. So, where do we get this information from?
 
 Both, target values and chunks are defined by the design of the experiment.
@@ -168,59 +173,180 @@ first column, and the chunk identifier in the second, with one line per
 volume in the NIfTI image.
 
 >>> # directory that contains the data files
->>> datapath = os.path.join(tutorial_data_path, 'data')
->>> attr = SampleAttributes(os.path.join(datapath, 'attributes.txt'))
+>>> data_path = os.path.join(tutorial_data_path, 'haxby2001')
+>>> attr_fname = os.path.join(data_path, 'sub001',
+...                           'BOLD', 'task001_run001', 'attributes.txt')
+>>> attr = SampleAttributes(attr_fname)
 >>> len(attr.targets)
-1452
+121
 >>> print np.unique(attr.targets)
 ['bottle' 'cat' 'chair' 'face' 'house' 'rest' 'scissors' 'scrambledpix'
  'shoe']
 >>> len(attr.chunks)
-1452
+121
 >>> print np.unique(attr.chunks)
-[  0.   1.   2.   3.   4.   5.   6.   7.   8.   9.  10.  11.]
+[ 0.]
 
-:class:`~mvpa2.misc.io.base.SampleAttributes` allows us to load this type of file, and access its
-content. We got 1452 label and chunk values, one for each volume. Moreover,
-we see that there are nine different conditions and 12 different chunks.
+:class:`~mvpa2.misc.io.base.SampleAttributes` allows us to load this type of
+file, and access its content. We got 121 labels and chunk values, one for each
+volume. Moreover, we see that there are nine different conditions and all
+samples are associated with the same chunk. The attributes file for a different
+scan/run would increment the chunk value.
 
-Now we can load the fMRI data, as we have done before -- only loading
-voxels corresponding to a mask of ventral temporal cortex, and assign the
-samples attributes to the dataset. `~mvpa2.datasets.mri.fmri_dataset()` allows us to pass them
-directly:
+Now we can load the fMRI data, as we have done before -- only loading voxels
+corresponding to a mask of ventral temporal cortex, and assign the samples
+attributes to the dataset. `~mvpa2.datasets.mri.fmri_dataset()` allows us to
+pass them directly:
 
->>> fds = fmri_dataset(samples=os.path.join(datapath, 'bold.nii.gz'),
+>>> bold_fname = os.path.join(data_path,
+...                           'sub001', 'BOLD', 'task001_run001', 'bold.nii.gz')
+>>> mask_fname = os.path.join(tutorial_data_path, 'haxby2001',
+...                           'sub001', 'masks', 'orig', 'vt.nii.gz')
+>>> fds = fmri_dataset(samples=bold_fname,
 ...                    targets=attr.targets, chunks=attr.chunks,
-...                    mask=os.path.join(datapath, 'mask_vt.nii.gz'))
+...                    mask=mask_fname)
 >>> fds.shape
-(1452, 577)
+(121, 577)
 >>> print fds.sa
 <SampleAttributesCollection: chunks,targets,time_coords,time_indices>
 
 We got the dataset that we already know from the last part, but this time
-is also has information about chunks and targets.  Now it is a good time to
-obtain a `~mvpa2.datasets.miscfx.summary()` overview of the dataset: basic
-statistics, balance in number of samples among targets per chunk, etc.:
+is also has information about chunks and targets.
+
+More structure, less duplication of work
+========================================
+
+Although one could craft individual attribute files for each fMRI scan, doing
+so would be suboptimal. Typically, stimulation is not synchronous with
+fMRI volume sampling rate, hence timing information would be lost. Moreover,
+information on stimulation, or experiment design in general, is most likely
+available already in different form or shape.
+
+To ease working with a broad range of datasets, PyMVPA comes with dedicated
+support for datasets following the specifications used by the openfmri.org_
+data-sharing platform. These are simple guidelines for file name conventions
+and design specification that can be easily adopted for your own data.
+
+.. _openfmri.org: http://www.openfmri.org
+
+.. exercise::
+
+  The tutorial data you are working with is following the openfmri.org
+  scheme. Open the dataset folder and inspect the structure and content
+  of the files with meta data. Notice, that it is possible to run a standard
+  analysis using, for example, FSL's FEAT directly on this data in unmodified
+  form.
+
+Accessing such a dataset is done via a handler that simply needs to know
+where the dataset is stored on disk. This handler offers convenient access
+to basic information, such as the number of subjects, task descriptions,
+and other properties.
+
+>>> dhandle = OpenFMRIDataset(data_path)
+>>> dhandle.get_subj_ids()
+[1]
+>>> dhandle.get_task_descriptions()
+{1: 'object viewing'}
+
+More importantly, it supports access to information on experiment design:
+
+>>> model = 1
+>>> subj = 1
+>>> run = 1
+>>> events = dhandle.get_bold_run_model(model, subj, run)
+>>> for ev in events[:2]:
+...     print ev
+{'task': 1, 'run': 1, 'onset_idx': 0, 'conset_idx': 0, 'onset': 15.0, 'intensity': 1, 'duration': 22.5, 'condition': 'scissors'}
+{'task': 1, 'run': 1, 'onset_idx': 1, 'conset_idx': 0, 'onset': 52.5, 'intensity': 1, 'duration': 22.5, 'condition': 'face'}
+
+As you can see, the stimulus design information is available in a list of
+standard Python dictionaries for each event. This includes onset and duration
+of the stimulation, as well as literal condition labels, and task descriptions.
+
+With a utility function it is straightforward to convert such an event list
+into a sample attribute array like the one we have loaded from a file before.
+``events2sample_attr()`` uses the sample acquisition time information stored in
+the dataset's ``time_coords`` sample attribute to match stimulation events to
+data samples.
+
+>>> targets = events2sample_attr(events, fds.sa.time_coords,
+...                              noinfolabel='rest', onset_shift=0.0)
+>>> print np.unique([attr.targets[i] == targets[i] for i in range(len(targets))])
+[ True]
+>>> print np.unique(attr.targets)
+['bottle' 'cat' 'chair' 'face' 'house' 'rest' 'scissors' 'scrambledpix'
+ 'shoe']
+ >>> print len(fds), len(targets)
+ 121 121
+
+Note, that the conversion of stimulation events to attribute arrays is a rather
+crude way of labeling fMRI data that only works well with block-design-like
+experiments. We will see other approaches later in this tutorial.
+
+In addition to experiment design information, the dataset handler also offers
+convenient access to the actual BOLD fMRI data:
+
+>>> task = 1
+>>> fds = dhandle.get_bold_run_dataset(subj, task, run, mask=mask_fname)
+>>> print fds
+<Dataset: 121x577@int16, <sa: run,subj,task,time_coords,time_indices>, <fa: voxel_indices>, <a: imgaffine,imghdr,imgtype,mapper,voxel_dim,voxel_eldim>>
+
+The method ``get_bold_run_dataset()`` works the same way as ``fmri_dataset()``,
+which we have seen before, and also supports the same arguments. However,
+instead of giving a custom filename, BOLD data is identified by subject, task,
+and acquisition run IDs.
+
+Multi-session data
+------------------
+
+Many fMRI experiments involve multiple runs. Loading such data is best done
+in a loop. The following code snippet loads all available runs for the object
+viewing task from our example subject in the dataset.
+
+>>> task = 1   # object viewing task
+>>> model = 1  # image stimulus category model
+>>> subj = 1
+>>> run_datasets = []
+>>> for run_id in dhandle.get_task_bold_run_ids(task)[subj]:
+...     # load design info for this run
+...     run_events = dhandle.get_bold_run_model(model, subj, run_id)
+...     # load BOLD data for this run (with masking); add 0-based chunk ID
+...     run_ds = dhandle.get_bold_run_dataset(subj, task, run_id,
+...                                           chunks=run_id -1,
+...                                           mask=mask_fname)
+...     # convert event info into a sample attribute and assign as 'targets'
+...     run_ds.sa['targets'] = events2sample_attr(
+...                 run_events, run_ds.sa.time_coords, noinfolabel='rest')
+...     # additional time series preprocessing can go here
+...     run_datasets.append(run_ds)
+>>> # this is PyMVPA's vstack() for merging samples from multiple datasets
+>>> # a=0 indicates that the dataset attributes of the first run should be used
+>>> # for the merged dataset
+>>> fds = vstack(run_datasets, a=0)
+
+Now it is a good time to obtain a `~mvpa2.datasets.miscfx.summary()` overview
+of the dataset: basic statistics, balance in number of samples among targets
+per chunk, etc.:
 
 >>> print fds.summary()
-Dataset: 1452x577@int16, <sa: chunks,targets,time_coords,time_indices>, <fa: voxel_indices>, <a: imghdr,imgtype,mapper,voxel_dim,voxel_eldim>
+Dataset: 1452x577@int16, <sa: chunks,run,subj,targets,task,time_coords,time_indices>, <fa: voxel_indices>, <a: imgaffine,imghdr,imgtype,mapper,voxel_dim,voxel_eldim>
 stats: mean=1656.47 std=342.034 var=116988 min=352 max=2805
 <BLANKLINE>
 Counts of targets in each chunk:
   chunks\targets bottle cat chair face house rest scissors scrambledpix shoe
                    ---  ---  ---   ---  ---   ---    ---        ---      ---
-       0.0          9    9    9     9    9    49      9          9        9
-       1.0          9    9    9     9    9    49      9          9        9
-       2.0          9    9    9     9    9    49      9          9        9
-       3.0          9    9    9     9    9    49      9          9        9
-       4.0          9    9    9     9    9    49      9          9        9
-       5.0          9    9    9     9    9    49      9          9        9
-       6.0          9    9    9     9    9    49      9          9        9
-       7.0          9    9    9     9    9    49      9          9        9
-       8.0          9    9    9     9    9    49      9          9        9
-       9.0          9    9    9     9    9    49      9          9        9
-      10.0          9    9    9     9    9    49      9          9        9
-      11.0          9    9    9     9    9    49      9          9        9
+        0           9    9    9     9    9    49      9          9        9
+        1           9    9    9     9    9    49      9          9        9
+        2           9    9    9     9    9    49      9          9        9
+        3           9    9    9     9    9    49      9          9        9
+        4           9    9    9     9    9    49      9          9        9
+        5           9    9    9     9    9    49      9          9        9
+        6           9    9    9     9    9    49      9          9        9
+        7           9    9    9     9    9    49      9          9        9
+        8           9    9    9     9    9    49      9          9        9
+        9           9    9    9     9    9    49      9          9        9
+       10           9    9    9     9    9    49      9          9        9
+       11           9    9    9     9    9    49      9          9        9
 <BLANKLINE>
 Summary for targets across chunks
     targets  mean std min max #chunks
@@ -262,12 +388,16 @@ scrambledpix:  0  0  0  0  0  12  0 96  0  |   0  0  0  0  0  24  0 84  0  |
     shoe:      0  0  0  0  0  12  0  0 96  |   0  0  0  0  0  24  0  0 84  |
 Correlations: min=-0.19 max=0.88 mean=-0.00069 sum(abs)=77
 
-The next step is to extract the *patterns of activation* from the dataset
-that we are interested in. But wait! We know that fMRI data is
-typically contaminated with a lot of noise, or actually *information* that
-we are not interested in. For example, there are temporal drifts in the
-data (the signal tends to increase when the scanner is warming up). We
-also know that the signal is not fully homogeneous throughout the brain.
+In :ref:`chap_tutorial_openfmri` you can take a look at an example on how the
+kind of data preparation described above can be perform in an even more compact
+way.
+
+The next step is to extract the *patterns of activation* from the dataset that
+we are interested in. But wait! We know that fMRI data is typically
+contaminated with a lot of noise, or actually *information* that we are not
+interested in. For example, there are temporal drifts in the data (the signal
+tends to increase when the scanner is warming up). We also know that the signal
+is not fully homogeneous throughout the brain.
 
 All these artifacts carry a lot of variance that is (hopefully) unrelated
 to the experiment design, and we should try to remove it to present the
@@ -278,6 +408,10 @@ normalization, and so on. In this tutorial, we keep it simple. The data we
 have just loaded is already motion corrected. For every experiment that is
 longer than a few minutes, as in this case, temporal trend removal, or
 :term:`detrending`, is crucial.
+
+
+Basic preprocessing
+===================
 
 Detrending
 ----------
@@ -313,44 +447,49 @@ return it. Let's try:
 ``detrended_fds`` is easily identifiable as a dataset that has been
 flattened, sliced, and linearly detrended.
 
+Note that detrending doesn't always have to be an explicit step. For example,
+if you plan on modelling your data with haemodynamic response functions in a
+general linear model (like it is shown in :ref:`chap_tutorial_openfmri` with
+NiPy), polynomial detrending can be done simultaneously as part of the
+modeling.
+
 
 Normalization
 -------------
 
 While this will hopefully have solved the problem of temporal drifts in the
-data, we still have inhomogeneous voxel intensities, but there are many
-possible approaches to fix it. For this tutorial we are again following a
-simple one, and perform a feature-wise, chunk-wise Z-scoring of the data.  This
-has many advantages. First, it is going to scale all features into approximately
-the same range, and also remove their mean.  The latter is quite important,
-since some classifiers are impaired when working with data having large offsets.
-However, we are not
-going to perform a very simple Z-scoring removing the global mean, but use the
-*rest* condition samples of the dataset to estimate mean and standard deviation.
-Scaling dataset features using these parameters yields a score corresponding to the
-per time-point voxel intensity difference from the *rest* average.
+data, we still have inhomogeneous voxel intensities that can be a problem for
+some machine learning algorithms. For this tutorial, we are again following a
+simple approach to address this issue, and perform a feature-wise, chunk-wise
+Z-scoring of the data.  This has many advantages. First, it is going to scale
+all features into approximately the same range, and also remove their mean.
+The latter is quite important, since some classifiers are impaired when working
+with data having large offsets.  However, we are not going to perform a very
+simple Z-scoring removing the global mean, but use the *rest* condition samples
+of the dataset to estimate mean and standard deviation.  Scaling dataset
+features using these parameters yields a score corresponding to the per
+time-point voxel intensity difference from the *rest* average.
 
 This type of data :term:`normalization` is, you guessed it, also
 implemented as a mapper:
 
 >>> zscorer = ZScoreMapper(param_est=('targets', ['rest']))
 
-This configures to perform a :term:`chunk`\-wise (the default) Z-scoring, while
-estimating mean and standard deviation from samples targets with 'rest' in
-the respective chunk of data.
+This mapper configuration implements a :term:`chunk`\-wise (the default)
+Z-scoring, while estimating mean and standard deviation from samples targets
+with 'rest' in the respective chunk of data.
 
 Remember, all mappers return new datasets that only have copies of what has
-been modified. However, both detrending and Z-scoring have or will modify
-the samples themselves. That means that the memory consumption will triple!
-We will have the original data, the detrended data, and the Z-scored data,
-but typically we are only interested in the final processing stage. The
-reduce the memory footprint, both mappers have siblings that perform the
-same processing, but without copying the data. For
-`~mvpa2.mappers.detrend.PolyDetrendMapper` this is
-`~mvpa2.mappers.detrend.poly_detrend()`, and for
-`~mvpa2.mappers.zscore.ZScoreMapper` this is
-`~mvpa2.mappers.zscore.zscore()`. The following call will do the same as the
-mapper we have created above, but using less memory:
+been modified. However, both detrending and Z-scoring have or will modify the
+samples themselves. That means that the memory consumption will triple!  We
+will have the original data, the detrended data, and the Z-scored data, but
+typically we are only interested in the final processing stage. To reduce the
+memory footprint, both mappers have siblings that perform the same processing,
+but without copying the data. For `~mvpa2.mappers.detrend.PolyDetrendMapper`
+this is `~mvpa2.mappers.detrend.poly_detrend()`, and for
+`~mvpa2.mappers.zscore.ZScoreMapper` this is `~mvpa2.mappers.zscore.zscore()`.
+The following call will do the same as the mapper we have created above, but
+using less memory:
 
 >>> zscore(detrended_fds, param_est=('targets', ['rest']))
 >>> fds = detrended_fds
@@ -376,16 +515,15 @@ dataset:
 Computing *Patterns Of Activation*
 ----------------------------------
 
-The last preprocessing step, we need to replicate, is computing the
-actual *patterns of activation*. In the original study Haxby and colleagues
-performed a GLM-analysis of odd vs. even runs of the data respectively and
-used the corresponding contrast statistics (stimulus category vs. rest) as
-classifier input. In this tutorial, we will use a much simpler shortcut and
-just compute *mean* samples per condition for both odd and even
-independently.
+The last preprocessing step is to compute the actual *patterns of activation*.
+In the original study, Haxby and colleagues performed a GLM-analysis of odd vs.
+even runs of the data respectively and used the corresponding contrast
+statistics (stimulus category vs. rest) as classifier input. In this tutorial,
+we will use a much simpler shortcut and just compute *mean* samples per
+condition for both odd and even run independently.
 
 To achieve this, we first add a new sample attribute to assign a
-corresponding label to each sample in the dataset, indication to which of
+corresponding label to each sample in the dataset that indicates which of
 both run-types it belongs to:
 
 >>> rnames = {0: 'even', 1: 'odd'}
@@ -410,14 +548,10 @@ since this is also a mapper, a new dataset with mean samples is returned:
 ['bottle' 'cat' 'chair' 'face' 'house' 'scissors' 'scrambledpix' 'shoe'
  'bottle' 'cat' 'chair' 'face' 'house' 'scissors' 'scrambledpix' 'shoe']
 >>> print fds.sa.chunks
-['0.0+2.0+4.0+6.0+8.0+10.0' '0.0+2.0+4.0+6.0+8.0+10.0'
- '0.0+2.0+4.0+6.0+8.0+10.0' '0.0+2.0+4.0+6.0+8.0+10.0'
- '0.0+2.0+4.0+6.0+8.0+10.0' '0.0+2.0+4.0+6.0+8.0+10.0'
- '0.0+2.0+4.0+6.0+8.0+10.0' '0.0+2.0+4.0+6.0+8.0+10.0'
- '1.0+3.0+5.0+7.0+9.0+11.0' '1.0+3.0+5.0+7.0+9.0+11.0'
- '1.0+3.0+5.0+7.0+9.0+11.0' '1.0+3.0+5.0+7.0+9.0+11.0'
- '1.0+3.0+5.0+7.0+9.0+11.0' '1.0+3.0+5.0+7.0+9.0+11.0'
- '1.0+3.0+5.0+7.0+9.0+11.0' '1.0+3.0+5.0+7.0+9.0+11.0']
+['0+2+4+6+8+10' '0+2+4+6+8+10' '0+2+4+6+8+10' '0+2+4+6+8+10' '0+2+4+6+8+10'
+ '0+2+4+6+8+10' '0+2+4+6+8+10' '0+2+4+6+8+10' '1+3+5+7+9+11' '1+3+5+7+9+11'
+ '1+3+5+7+9+11' '1+3+5+7+9+11' '1+3+5+7+9+11' '1+3+5+7+9+11' '1+3+5+7+9+11'
+ '1+3+5+7+9+11']
 
 Here we go! We now have a fully-preprocessed dataset: masked, detrended, normalized,
 with one sample per stimulus condition that is an average for odd and even runs
@@ -446,17 +580,17 @@ original 3D shape.
 >>> orig_data.shape
 (5, 4, 3)
 
-In interactive scripting sessions this is would be a relatively bulky command to
-type, although it might be quite frequently used. To make ones fingers suffer
-less there is a little shortcut that does exactly the same:
+In interactive scripting sessions this is would be a relatively bulky command
+to type, although it might be quite frequently used. To make ones fingers
+suffer less there is a little shortcut that does exactly the same:
 
 >>> orig_data = ds.O
 >>> orig_data.shape
 (5, 4, 3)
 
 It is important to realize that reverse-mapping not only works with a single
-mapper, but also with a `~mvpa2.mappers.base.ChainMapper`. Going back to our demo
-dataset from the beginning we can see how it works:
+mapper, but also with a `~mvpa2.mappers.base.ChainMapper`. Going back to our
+demo dataset from the beginning we can see how it works:
 
 >>> print subds
 <Dataset: 5x4@float64, <a: mapper>>

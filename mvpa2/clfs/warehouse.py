@@ -47,7 +47,11 @@ _KNOWN_INTERNALS = [ 'knn', 'binary', 'svm', 'linear',
         'libsvm', 'sg', 'meta', 'retrainable', 'gpr',
         'notrain2predict', 'ridge', 'blr', 'gnpp', 'enet', 'glmnet',
         'gnb', 'plr', 'rpy2', 'swig', 'skl', 'lda', 'qda',
-        'random-forest', 'extra-trees', 'random']
+        'random-forest', 'extra-trees', 'random',
+        # oneclass-binary can provide binary output for the labels
+        # oneclass would always output a single label but with
+        #  estimates/probabilities of interest
+        'oneclass', 'oneclass-binary']
 
 class Warehouse(object):
     """Class to keep known instantiated classifiers
@@ -363,6 +367,7 @@ if externals.exists('skl'):
         clfswh += SKLLearnerAdapter(sklRandomForestClassifier(),
                                      tags=['random-forest', 'linear', 'non-linear',
                                            'binary', 'multiclass',
+                                           'oneclass',
                                            'non-deterministic', 'needs_population',],
                                      descr='skl.RandomForestClassifier()')
 
@@ -378,6 +383,7 @@ if externals.exists('skl'):
         clfswh += SKLLearnerAdapter(sklExtraTreesClassifier(),
                                      tags=['extra-trees', 'linear', 'non-linear',
                                            'binary', 'multiclass',
+                                           'oneclass',
                                            'non-deterministic', 'needs_population',],
                                      descr='skl.ExtraTreesClassifier()')
 
@@ -658,7 +664,7 @@ if len(clfswh['linear', 'svm']) > 0:
     #   FeatureSelectionClassifier(
     #    clf = LinearCSVMC(),
     #    feature_selection = RFE(             # on features selected via RFE
-    #        sensitivity_analyzer=\
+    #        sensitivity_analyzer=
     #            rfesvm.get_sensitivity_analyzer(postproc=absolute_features()),
     #        transfer_error=TransferError(rfesvm),
     #        stopping_criterion=FixedErrorThresholdStopCrit(0.05),
@@ -675,7 +681,7 @@ if len(clfswh['linear', 'svm']) > 0:
     #   FeatureSelectionClassifier(
     #    clf = LinearCSVMC(),
     #    feature_selection = RFE(             # on features selected via RFE
-    #        sensitivity_analyzer=\
+    #        sensitivity_analyzer=
     #            rfesvm.get_sensitivity_analyzer(postproc=absolute_features()),
     #        transfer_error=TransferError(rfesvm),
     #        stopping_criterion=FixedErrorThresholdStopCrit(0.05),
